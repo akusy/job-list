@@ -20,12 +20,34 @@ class JobList
     jobs_array.map{ |job| job.split(/\=>/).collect(&:strip).reject(&:empty?) }
   end
 
+  def create_sequence jobs_array
+    split_jobs(jobs_array).each do |jobs|
+      if jobs.count == 1
+        @result << jobs.first unless @result.include?(jobs.first)
+        next
+      end  
+      next if invalid_jobs?(jobs)
+      find_depedency_and_add_jobs jobs
+    end
+  end
+
   def invalid_jobs? jobs
     raise DependencyError if jobs[0] == jobs[1]
 
     if @result.include?(jobs[0]) && @result.include?(jobs[1])
       raise CircularDependencyError if @result.index(jobs[0]) < @result.index(jobs[1])
       true
+    end
+  end
+
+  def find_depedency_and_add_jobs jobs
+    if index = @result.index(jobs[0])
+      @result.insert(index, jobs[1])
+    elsif index = @result.index(jobs[1])
+      @result.insert(index+1, jobs[0])
+    else
+      @result << jobs[1]
+      @result << jobs[0]
     end
   end
 
